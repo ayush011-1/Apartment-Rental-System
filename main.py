@@ -18,7 +18,7 @@ app.secret_key = "apartment_rental"
 #code for connection
 app.config['MYSQL_HOST'] = 'localhost' #hostname
 app.config['MYSQL_USER'] = 'root' #username
-app.config['MYSQL_PASSWORD'] = '' #password
+app.config['MYSQL_PASSWORD'] = 'Ayush201' #password
 #in my case password is null so i am keeping empty
 app.config['MYSQL_DB'] = 'apartmentRental' #database name
 # Intialize MySQL
@@ -397,7 +397,7 @@ def rentApartment() :
     return render_template('RentApartment.html',apartment=apartment, img_url=img_url)
 
 @app.route('/Details', methods=['GET','POST'])
-def Details() :
+def Details():
     Error=''
     Uname=''
     Tname=''
@@ -407,33 +407,54 @@ def Details() :
     Date = date.today()
     rentAmt= 0
     Deposit= 0
-    #creating variable for connection
+
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    #applying empty validation
-    if request.method == 'POST' and 'Username' in request.form and 'aptNo' in request.form and 'TFatherName' in request.form and 'PerAddr' in request.form :
+
+    if request.method == 'POST' and 'Username' in request.form and 'aptNo' in request.form and 'TFatherName' in request.form and 'PerAddr' in request.form:
         Uname = request.form['Username']
         aptNo = request.form['aptNo']
         TFatherName = request.form['TFatherName']
         PAddress = request.form['PerAddr']
-        cursor.execute('SELECT T_ID FROM TENANT WHERE EMAIL= % s',(Uname,))
+
+        cursor.execute('SELECT T_ID FROM TENANT WHERE EMAIL= %s',(Uname,))
         mysql.connection.commit()
         tid_list1 = cursor.fetchone()
+
+        if not tid_list1:
+            Error = 'Invalid Username!!'
+            return render_template('Details.html', Error=Error)
+
         t_id = tid_list1['T_ID']
+
         cursor.execute('SELECT RENT_PER_MONTH FROM APARTMENT WHERE ROOM_NO = %s AND APT_STATUS = "Unoccupied"',(aptNo,))
         mysql.connection.commit()
         res1 = cursor.fetchone()
-        if t_id != None and res1 != None :
+
+        if res1:
             cursor.execute('SELECT FNAME,LNAME FROM TENANT WHERE T_ID = %s',(t_id,))
             mysql.connection.commit()
             res = cursor.fetchone()
+
             Tname = res['FNAME']+' '+res['LNAME']
-            rentAmt=res1['RENT_PER_MONTH']
+            rentAmt = res1['RENT_PER_MONTH']
             Deposit = rentAmt * 2
-            return redirect(url_for('Contract', aptNo=aptNo ,Tname=Tname, TFatherName=TFatherName, PAddress=PAddress, Date=Date, rentAmt=rentAmt, Deposit=Deposit))
-        else :
-            Error = 'Invalid Username or Apartment No.!!'
-    elif request.method == 'POST' :
+
+            return redirect(url_for('Contract',
+                aptNo=aptNo,
+                Tname=Tname,
+                TFatherName=TFatherName,
+                Uname=Uname,   # ✅ FIX
+                PAddress=PAddress,
+                Date=Date,
+                rentAmt=rentAmt,
+                Deposit=Deposit
+            ))
+        else:
+            Error = 'Invalid Apartment No. or Already Occupied!!'
+
+    elif request.method == 'POST':
         Error= 'Please fill out the form!'
+
     return render_template('Details.html', Error=Error)
 
 
